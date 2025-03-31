@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 
 interface MessageProps {
   sender: "user" | "bot";
@@ -10,8 +10,8 @@ const Message: React.FC<MessageProps> = ({ sender, text }) => {
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div
-        className={`max-w-xs p-3 rounded-lg ${
-          isUser ? "bg-blue-500 text-white" : "bg-gray-200 text-black"
+        className={`max-w-xs p-3 rounded-lg text-base ${
+          isUser ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-200"
         }`}
       >
         {text}

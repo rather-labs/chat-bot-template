@@ -1,9 +1,9 @@
 export default function Footer() {
   return (
-    <>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-between">
-        <>Ratherlabs chatbot app. All rights reserved 2024.</>
-      </footer>
-    </>
+    <footer className="bg-gray-950 border-t border-gray-800 py-2 px-4 text-gray-400 text-base text-center">
+      <div className="container mx-auto">
+        Ratherlabs chatbot PoC. All rights reserved 2024.
+      </div>
+    </footer>
   );
 }

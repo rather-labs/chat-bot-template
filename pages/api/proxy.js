@@ -16,7 +16,6 @@ export default async function handler(req, res) {
     const response = await axios.get(COINMARKET_URL  + endpoint, {
         headers
       });
-    console.log(response.data);
     res.status(200).json(response.data);
   } catch (error) {
     console.log(error);
