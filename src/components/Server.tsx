@@ -17,6 +17,11 @@ const openai = new OpenAI({
   baseURL: process.env.OPENAI_BASE_URL,
   apiKey: process.env.OPENAI_API_KEY,
   dangerouslyAllowBrowser: true, // makes public the API_KEY, but it's no problem for the gaianode used.
+  defaultHeaders: {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  },
 });
 
 async function listCryptoAssets() {
@@ -34,7 +39,6 @@ async function listCryptoAssets() {
       market_cap: coin.quote.USD.market_cap,
       market_cap_dominance: coin.quote.USD.market_cap_dominance,
     }));
-    console.log(response.data.data);
     return { result: "ok", coins };
   } catch (error: unknown) {
     return { result: "error", message: (error as Error).message };
@@ -56,7 +60,6 @@ async function getHighestMarketCap() {
       market_cap_dominance: coin.quote.USD.market_cap_dominance,
     }));
     const sortedCoins = coins.sort((a: { market_cap: number; }, b: { market_cap: number; }) => b.market_cap - a.market_cap);
-    console.log(sortedCoins);
     return { result: "ok", coins: sortedCoins };
   } catch (error: unknown) {
     return { result: "error", message: (error as Error).message };
@@ -78,7 +81,6 @@ async function getHighestPrice() {
       market_cap_dominance: coin.quote.USD.market_cap_dominance,
     }));
     const sortedCoins = coins.sort((a: { price: number; }, b: { price: number; }) => b.price - a.price);
-    console.log(sortedCoins);
     return { result: "ok", coins: sortedCoins };
   } catch (error: unknown) {
     return { result: "error", message: (error as Error).message };
@@ -90,7 +92,6 @@ async function getCryptoById(id: number) {
     const response = await axios.get(
       `/api/proxy?endpoint=v2/cryptocurrency/quotes/latest?id=${id}`
     );
-    console.log(response.data.data[id]);
     const coins = response.data.data[id].map((coin: CoinData) => ({
       id: coin.id,
       name: coin.name,
@@ -100,7 +101,6 @@ async function getCryptoById(id: number) {
       market_cap: coin.quote.USD.market_cap,
       market_cap_dominance: coin.quote.USD.market_cap_dominance,
     }));
-    console.log(coins);
     return { result: "ok", coin: coins[0]};
   } catch (error: unknown) {
     return { result: "error", message: (error as Error).message };
@@ -112,7 +112,6 @@ async function getCryptoById(id: number) {
 //    const response = await axios.get(
 //      `/api/proxy?endpoint=v2/cryptocurrency/quotes/latest?slug=${slug}`
 //    );
-//    console.log(response.data.data[slug]);
 //    const coins = response.data.data[slug].map((coin: CoinData) => ({
 //      id: coin.id,
 //      name: coin.name,
@@ -122,7 +121,6 @@ async function getCryptoById(id: number) {
 //      market_cap: coin.quote.USD.market_cap,
 //      market_cap_dominance: coin.quote.USD.market_cap_dominance,
 //    }));
-//    console.log(coins);
 //    return { result: "ok", coin: coins[0]};
 //  } catch (error: unknown) {
 //    return { result: "error", message: (error as Error).message };
@@ -143,7 +141,6 @@ async function getCryptoBySymbol(symbol: string) {
       market_cap: coin.quote.USD.market_cap,
       market_cap_dominance: coin.quote.USD.market_cap_dominance,
     }));
-    console.log(coins);
     return { result: "ok", coin: coins[0]};
   } catch (error: unknown) {
     return { result: "error", message: (error as Error).message };
@@ -248,7 +245,6 @@ const Tools: ChatCompletionTool[] = [
 async function evalTools(tools: OpenAI.ChatCompletionMessageToolCall[]) {
   const result: [unknown, string][] = [];
   for (const tool of tools) {
-    console.log(tool.function.arguments);
     if (tool.function.name === "listCryptoAssets") {
       result.push([await listCryptoAssets(), tool.id]);
     } else if (tool.function.name === "getHighestMarketCap") {
@@ -283,14 +279,37 @@ async function evalTools(tools: OpenAI.ChatCompletionMessageToolCall[]) {
   return result;
 }
 
+function parseToolCall(content: string): OpenAI.ChatCompletionMessageToolCall | null {
+  const toolCallRegex = /<tool_call>\n([\s\S]*?)\n<\/tool_call>/;
+  const match = content.match(toolCallRegex);
+  
+  if (!match) {
+    return null;
+  }
+
+  try {
+    const toolData = JSON.parse(match[1]);
+    return {
+      id: `call_${Date.now()}`,
+      type: "function",
+      function: {
+        name: toolData.name,
+        arguments: JSON.stringify(toolData.arguments || {}),
+      },
+    };
+  } catch (error) {
+    console.error("Error parsing tool call:", error);
+    return null;
+  }
+}
+
 async function handlerLlmResponse(
   messages: OpenAI.ChatCompletionMessageParam[],
   stream: Stream<OpenAI.Chat.Completions.ChatCompletionChunk> & {
     _request_id?: string | null;
   }
 ) {
-  let tools: OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall[] =
-    [];
+  let tools: OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall[] = [];
   let content = "";
 
   for await (const chunk of stream) {
@@ -298,7 +317,17 @@ async function handlerLlmResponse(
       break;
     }
     const delta = chunk.choices[0].delta;
-    content += delta.content;
+    
+    if (delta.content) {
+      content += delta.content;
+      // Check if the content contains a tool call
+      // Sometimes the LLM responds with a tool call but doesn't add it to delta.tool_calls
+      const toolCall = parseToolCall(content);
+      if (toolCall) {
+        tools.push(toolCall as OpenAI.Chat.Completions.ChatCompletionChunk.Choice.Delta.ToolCall);
+        content = content.replace(/<tool_call>[\s\S]*?<\/tool_call>/, "");
+      }
+    }
 
     if (delta.tool_calls) {
       if (tools.length === 0) {
@@ -309,22 +338,20 @@ async function handlerLlmResponse(
             tools[index] = tool_call;
           } else if (tool_call.function?.arguments && tools[index].function) {
             const currentArgs = tools[index].function.arguments || "";
-            tools[index].function.arguments =
-              currentArgs + tool_call.function.arguments;
+            tools[index].function.arguments = currentArgs + tool_call.function.arguments;
           }
         });
       }
     }
   }
+
   if (tools.length === 0) {
     messages.push({ role: "assistant", content: content });
   } else {
     messages.push({
       role: "assistant",
       content: content,
-      tool_calls: tools.map(
-        (tool) => tool as OpenAI.ChatCompletionMessageToolCall
-      ),
+      tool_calls: tools.map((tool) => tool as OpenAI.ChatCompletionMessageToolCall),
     });
   }
 
@@ -362,17 +389,18 @@ export async function sendMessage(
     messages.push({
       role: "system",
       content: `You are an information fetching assistant.
-The responses of tool are in JSON format, when you get the response, use the data on the fields to answer the user's question.
 Crypto asset symbols are typiclly 3 to 5 characters long in large caps.
 Crypto asset names or slugs are typically longer.
 `
     });
   }
-  console.log(messages);
+
   messages.push({ role: "user", content: userInput });
   let finishPrompts = false;
   while (!finishPrompts) {
     finishPrompts = await chatCompletion(messages);
   }
+  console.log("messages post completion", messages);
+
   return messages;
 }

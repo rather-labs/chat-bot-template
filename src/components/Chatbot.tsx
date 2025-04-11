@@ -52,7 +52,6 @@ const Chatbot: React.FC = () => {
     setTimeout(scrollToBottom, 100);
 
     try {
-      // Simulate bot response (replace with actual API call)
       const response = await sendMessage(prompts, textToSend);
       const botMessage: MessageType = {
         sender: "bot",
