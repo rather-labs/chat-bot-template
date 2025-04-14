@@ -14,11 +14,10 @@ interface MessageType {
 
 const exampleQuestions = [
   "What can you help me with?",
-  "What is the current price of BTC in CoinMarketCap?",
+  "Tell me the available information regarding BTC from CoinMarketCap",
   "What is the current price of ETH in CoinMarketCap?",
   "Can you list the assets with the highest price from CoinMarketCap?",
   "Can you list the assets with the highest market cap from CoinMarketCap?",
-  "Tell me the available information regarding BTC from CoinMarketCap",
 ];
 
 const Chatbot: React.FC = () => {
@@ -135,26 +134,28 @@ const Chatbot: React.FC = () => {
       </div>
       
       {/* Sidebar with Examples */}
-      <div className={`w-64 bg-gray-900 border border-gray-700 rounded-lg shadow-lg p-3 transition-opacity ${isLoading ? 'opacity-60' : 'opacity-100'}`}>
-        <div className="flex flex-col space-y-2">
-          <p className="text-base text-gray-400 font-medium border-b border-gray-700 pb-1 mb-1">
+      <div className="w-80 flex flex-col">
+        <div className="flex flex-col space-y-2 bg-gray-800 p-4 rounded-lg border border-gray-700 max-h-[70vh] overflow-y-auto">
+          <p className="text-base text-gray-400 font-medium border-b border-gray-700 pb-2 mb-2 sticky top-0 bg-gray-800">
             {isLoading ? 'Waiting for response...' : 'Example Questions'}
           </p>
-          {exampleQuestions.map((question) => (
-            <button
-              key={`example-${question}`}
-              onClick={() => handleSend(question)}
-              disabled={isLoading}
-              type="button"
-              className={`px-3 py-2 border border-gray-700 rounded-lg text-base text-left transition-colors ${
-                isLoading 
-                  ? "bg-gray-700 text-gray-400 cursor-not-allowed opacity-60" 
-                  : "bg-gray-800 text-blue-300 hover:bg-gray-700"
-              }`}
-            >
-              {question}
-            </button>
-          ))}
+          <div className="space-y-2">
+            {exampleQuestions.map((question) => (
+              <button
+                key={`example-${question}`}
+                onClick={() => handleSend(question)}
+                disabled={isLoading}
+                type="button"
+                className={`w-full px-3 py-2 border border-gray-700 rounded-lg text-base text-left transition-colors ${
+                  isLoading 
+                    ? "bg-gray-700 text-gray-400 cursor-not-allowed opacity-60" 
+                    : "bg-gray-900 text-blue-300 hover:bg-gray-700"
+                }`}
+              >
+                {question}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
