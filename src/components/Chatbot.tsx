@@ -1,6 +1,6 @@
 "use client";
 import type React from "react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { sendMessage } from "./Server";
 import Message from "./Message";
 import type OpenAI from "openai";
@@ -27,11 +27,25 @@ const Chatbot: React.FC = () => {
   );
   const [input, setInput] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   async function handleSend(messageText: string = input) {
     if ((!messageText.trim() && !input.trim()) || isLoading) return;
@@ -72,17 +86,31 @@ const Chatbot: React.FC = () => {
   }
 
   return (
-    <div className="flex w-full max-w-4xl mx-auto h-[70vh]">
+    <div className="flex flex-col w-full max-w-4xl mx-auto min-h-screen">
       {/* Main Chat Container */}
-      <div className="flex flex-col flex-grow border border-gray-700 rounded-lg shadow-lg bg-gray-900 mr-4">
+      <div className="flex flex-col flex-grow border border-gray-700 rounded-lg shadow-lg bg-gray-900">
         {/* Chat Window */}
         <div className="flex-1 overflow-y-auto p-3 bg-gray-800 space-y-3 rounded-t-lg">
           {messages.map((msg) => (
             <Message key={msg.id} sender={msg.sender} text={msg.text} />
           ))}
-          
-          {/* Empty div for auto-scrolling */}
           <div ref={messagesEndRef} />
+        </div>
+
+        {/* Ask me about button */}
+        <div className="px-2 py-1 bg-gray-900 border-t border-gray-700">
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="w-full px-3 py-1.5 text-sm text-white hover:text-gray-200 border border-blue-500 rounded-md transition-colors flex items-center justify-center space-x-1"
+            type="button"
+            aria-label="Show example questions"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-labelledby="questionIcon">
+              <title id="questionIcon">Question mark icon</title>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Ask me about</span>
+          </button>
         </div>
 
         {/* Input Section */}
@@ -93,7 +121,7 @@ const Chatbot: React.FC = () => {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Type your message..."
-            className="flex-1 p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800 text-gray-200 placeholder-gray-500 text-base"
+            className="flex-1 p-2 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800 text-white placeholder-gray-400 text-base"
             disabled={isLoading}
           />
           <button
@@ -132,29 +160,54 @@ const Chatbot: React.FC = () => {
           </button>
         </div>
       </div>
-      
-      {/* Sidebar with Examples */}
-      <div className="w-80 flex flex-col">
-        <div className="flex flex-col space-y-2 bg-gray-800 p-4 rounded-lg border border-gray-700 max-h-[70vh] overflow-y-auto">
-          <p className="text-base text-gray-400 font-medium border-b border-gray-700 pb-2 mb-2 sticky top-0 bg-gray-800">
-            {isLoading ? 'Waiting for response...' : 'Example Questions'}
-          </p>
-          <div className="space-y-2">
-            {exampleQuestions.map((question) => (
+
+      {/* Popup Menu for Example Questions */}
+      <div 
+        ref={mobileMenuRef}
+        className={`fixed inset-0 bg-black bg-opacity-50 z-50 transition-opacity duration-300 ${
+          isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className={`absolute bottom-0 left-0 right-0 bg-gray-800 rounded-t-xl transform transition-transform duration-300 ${
+          isMobileMenuOpen ? 'translate-y-0' : 'translate-y-full'
+        }`}>
+          <div className="p-4">
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-base text-white font-medium">
+                {isLoading ? 'Waiting for response...' : 'Example Questions'}
+              </p>
               <button
-                key={`example-${question}`}
-                onClick={() => handleSend(question)}
-                disabled={isLoading}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="p-2 text-white hover:text-gray-200"
+                aria-label="Close menu"
                 type="button"
-                className={`w-full px-3 py-2 border border-gray-700 rounded-lg text-base text-left transition-colors ${
-                  isLoading 
-                    ? "bg-gray-700 text-gray-400 cursor-not-allowed opacity-60" 
-                    : "bg-gray-900 text-blue-300 hover:bg-gray-700"
-                }`}
               >
-                {question}
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-labelledby="closeIcon">
+                  <title id="closeIcon">Close icon</title>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
-            ))}
+            </div>
+            <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+              {exampleQuestions.map((question) => (
+                <button
+                  key={`example-${question}`}
+                  onClick={() => {
+                    handleSend(question);
+                    setIsMobileMenuOpen(false);
+                  }}
+                  disabled={isLoading}
+                  type="button"
+                  className={`w-full px-3 py-2 border border-gray-700 rounded-lg text-base text-left transition-colors ${
+                    isLoading 
+                      ? "bg-gray-700 text-gray-400 cursor-not-allowed opacity-60" 
+                      : "bg-gray-900 text-white hover:bg-gray-700"
+                  }`}
+                >
+                  {question}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

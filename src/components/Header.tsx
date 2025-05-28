@@ -15,10 +15,10 @@ export default function Header() {
             className="rounded-md"
           />
           <div className="flex flex-col justify-between items-left">
-          <h1 className="text-blue-300 text-2xl font-bold">
+          <h1 className="text-white text-2xl font-bold">
             Ratherlab&apos;s Coinmarketcap Chatbot 
           </h1>
-          <h1 className="text-blue-300 text-sm font-bold">
+          <h1 className="text-white text-sm font-bold">
             powered by gaianet&apos;s public node ({process.env.OPENAI_BASE_URL})
           </h1>
           </div>
