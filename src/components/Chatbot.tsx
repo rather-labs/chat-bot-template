@@ -86,9 +86,9 @@ const Chatbot: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col w-full max-w-4xl mx-auto min-h-screen">
+    <div className="flex flex-col w-full max-w-4xl mx-auto h-[calc(85vh-8rem)]">
       {/* Main Chat Container */}
-      <div className="flex flex-col flex-grow border border-gray-700 rounded-lg shadow-lg bg-gray-900">
+      <div className="flex flex-col h-full border border-gray-700 rounded-lg shadow-lg bg-gray-900">
         {/* Chat Window */}
         <div className="flex-1 overflow-y-auto p-3 bg-gray-800 space-y-3 rounded-t-lg">
           {messages.map((msg) => (
