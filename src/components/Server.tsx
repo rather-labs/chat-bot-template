@@ -400,7 +400,5 @@ Crypto asset names or slugs are typically longer.
   while (!finishPrompts) {
     finishPrompts = await chatCompletion(messages);
   }
-  console.log("messages post completion", messages);
-
   return messages;
 }

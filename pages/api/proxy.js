@@ -12,13 +12,11 @@ export default async function handler(req, res) {
   try {
     // Extract the path segment to determine the endpoint
     const { endpoint } = req.query;
-    console.log(COINMARKET_URL  + endpoint);
     const response = await axios.get(COINMARKET_URL  + endpoint, {
         headers
       });
     res.status(200).json(response.data);
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: 'Error fetching data from external API' });
+    res.status(500).json({ error: `Error fetching data from external API: ${error}` });
   }
 }

@@ -28,6 +28,7 @@ const Chatbot: React.FC = () => {
   const [input, setInput] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
@@ -52,6 +53,7 @@ const Chatbot: React.FC = () => {
     
     const textToSend = messageText.trim() || input.trim();
     setIsLoading(true);
+    setError(null);
     
     // Add user message
     const newMessage: MessageType = { 
@@ -78,7 +80,7 @@ const Chatbot: React.FC = () => {
       setTimeout(scrollToBottom, 100);
     } catch (error) {
       console.error("Error sending message:", error);
-      // Optionally add error handling UI here
+      setError("Failed to send message. Please try again.");
     } finally {
       setIsLoading(false);
       setInput("");
@@ -87,6 +89,22 @@ const Chatbot: React.FC = () => {
 
   return (
     <div className="flex flex-col w-full max-w-4xl mx-auto h-[calc(85vh-8rem)]">
+      {/* Error Popup */}
+      {error && (
+        <div className="fixed top-4 right-4 bg-red-500/70 text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-2 backdrop-blur-sm border border-red-400">
+          <span className="font-medium">{"Error: " + error}</span>
+          <button
+            onClick={() => setError(null)}
+            className="ml-2 hover:text-gray-200 transition-colors"
+            aria-label="Close error message"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      )}
+      
       {/* Main Chat Container */}
       <div className="flex flex-col h-full border border-gray-700 rounded-lg shadow-lg bg-gray-900">
         {/* Chat Window */}
